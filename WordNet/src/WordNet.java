@@ -8,7 +8,7 @@ import java.util.List;
 public class WordNet 
 {
 	// Class that contains the relationships
-	class Synset 
+	private class Synset 
 	{
 		List<Integer> relations;
 		String word;
