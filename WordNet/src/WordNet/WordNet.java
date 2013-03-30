@@ -1,50 +1,18 @@
+package WordNet;
+
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
+import Synset.Synset;
 
 public class WordNet 
 {
-	// Class that contains the relationships
-	private class Synset 
-	{
-		private ArrayList<Integer> relations = new ArrayList<Integer>();
-		private String noun;
-		private String glossary;
-		
-		public Synset (String noun, String glossary) 
-		{
-			this.noun = noun;
-			this.glossary = glossary;
-		}
-		
-		public void addRelation(int a)
-		{
-			relations.add(a);
-		}
-		
-		public String getNoun()
-		{
-			return this.noun;
-		}
-		
-		public String getGlossary()
-		{
-			return this.glossary;
-		}
-		
-		public ArrayList<Integer> getRelations()
-		{
-			return this.relations;
-		}
-	}
 	
 	// Actual WordNet class
-	private HashMap<Integer,Synset> wordNet = new HashMap<Integer,Synset>();
+	private static HashMap<Integer,Synset> wordNet = new HashMap<Integer,Synset>();
 	
 	// constructor takes the name of the two input files
 	public WordNet(String synsets, String hypernyms) throws IOException
@@ -52,18 +20,16 @@ public class WordNet
 		BufferedReader reader1 = new BufferedReader(new FileReader(synsets));
 		BufferedReader reader2 = new BufferedReader(new FileReader(hypernyms));
 		String line;
-		String[] wordSet = new String[3];
 		
 		// Creates a hashmap of synsets
 		while ((line = reader1.readLine()) != null) {
-			  wordSet = this.parseNouns(line);
-			  wordNet.put(Integer.getInteger(wordSet[0]),new Synset(wordSet[1],wordSet[2]));
+			  WordNet.indexNouns(line);
 			}
 		reader1.close();
 		
 		// Adds relationships to the hashmap
 		while ((line = reader2.readLine()) != null) {
-			  this.addRelations(wordNet, line);
+			  WordNet.addRelations(wordNet, line);
 			}
 		reader1.close();
 		
@@ -75,43 +41,67 @@ public class WordNet
 	 * @param line
 	 * @return
 	 */
-	private static String[] parseNouns(String line)
+	private static void indexNouns(String line)
 	{
-			String[] pWords = new String[3];
 			int i = 0;
+			int id = 0;
+			String noun = null;
+			String glossary = null;
 			
-			while(line != null && !line.isEmpty() && i < 3)
+			while(line != null && i < 3)
 			{
-				int space = line.indexOf(' ');
-				String tLine = line.substring(0,space);
-				line = line.substring(space);
-				pWords[i] = tLine;
+				int comma = line.indexOf(',');
+				String word = i==2? line : line.substring(0,comma); // parsed word
+				line = line.substring(comma+1);
+				
+				// Assigns values to the three needed variables
+				if (i==0)
+					id = Integer.parseInt(word);
+				else if (i==1)
+					noun = word;
+				else
+					glossary = word;
+					
+				i++;
 			}
 			
-			return pWords;
+			// Add to WordNet
+			Synset s = new Synset(noun,glossary);
+			wordNet.put(id,s);
 	}
 	
 	private static void addRelations(HashMap<Integer, Synset> wn, String line)
 	{
 			ArrayList<Integer> relations = new ArrayList<Integer>();
 			boolean isFirst = true;
+			Synset s = null;
 			
 			while(line != null && !line.isEmpty())
 			{
-				Synset s = null;
-				int space = line.indexOf(' ');
-				String word = line.substring(0,space);
-				line = line.substring(space);
+				int comma = line.indexOf(',');
+				String word;
+					
+					// If there is a comma at all
+					if(comma == -1) {
+						word = line;
+						line = null;
+					}
+					else {
+						word = line.substring(0,comma);
+						line = line.substring(comma+1);
+					}
 				
 				// Word is the id
 				if(isFirst)
 				{
 					s = wn.get(word);
+					isFirst = false;
 				}
 				// Word is the id of a relation
 				else
 				{
-					s.addRelation(Integer.getInteger(word));
+					if(s!=null)
+						s.addRelation(Integer.getInteger(word));
 				}
 			}
 	}
@@ -134,7 +124,7 @@ public class WordNet
 	{
 		WordNet wn = null;
 		try {
-			wn = new WordNet("nouns.txt","synset.txt");
+			wn = new WordNet("nouns.txt","hypernyms.txt");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
